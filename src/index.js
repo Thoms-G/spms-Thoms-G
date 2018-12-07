@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom';
 import './index.css';
 
 
-
 class Main extends React.Component {
     constructor(props) {
         super(props);
@@ -12,34 +11,42 @@ class Main extends React.Component {
             current_number_of_portfolio: 0,
         };
     }
-    addPortefolio(){
-        if(this.state.current_number_of_portfolio < 10) {
+
+    addPortfolio() {
+        if (this.state.current_number_of_portfolio < 10) {
             ReactDOM.render(
                 <Portfolio name={document.getElementById("pf_name").value}/>,
                 document.getElementById("pf" + this.state.current_number_of_portfolio));
             this.state.current_number_of_portfolio++;
+
         } else {
             alert("You have too much portfolios");
         }
     }
 
+    removePortfolio() {
+
+    }
+
     render() {
-        return [
+        return (
             <div>
-                <input id="pf_name" type="text"/>
-                <button onClick={() => this.addPortefolio()}>Create new portfolio</button>
-            </div>,
-            <div id="pf0"></div>,
-            <div id="pf1"></div>,
-            <div id="pf2"></div>,
-            <div id="pf3"></div>,
-            <div id="pf4"></div>,
-            <div id="pf5"></div>,
-            <div id="pf6"></div>,
-            <div id="pf7"></div>,
-            <div id="pf8"></div>,
-            <div id="pf9"></div>,
-        ]
+                <div>
+                    <input id="pf_name" type="text"/>
+                    <button onClick={() => this.addPortfolio()}>Create new portfolio</button>
+                </div>
+                <div id="pf0"/>
+                <div id="pf1"/>
+                <div id="pf2"/>
+                <div id="pf3"/>
+                <div id="pf4"/>
+                <div id="pf5"/>
+                <div id="pf6"/>
+                <div id="pf7"/>
+                <div id="pf8"/>
+                <div id="pf9"/>
+            </div>
+        )
     }
 }
 
@@ -59,14 +66,37 @@ class Stock extends React.Component {
 class Portfolio extends React.Component {
     render() {
         return (
-            <div class="portefolio">
-                    <h1>{this.props.name}</h1>
-            </div>)
+            <div className="portfolio">
+                <span>
+                    <label>{this.props.name}</label>
+                    <button>Show in €</button>
+                    <button>Show in $</button>
+                </span>
+                <div>
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Unit. Value</th>
+                            <th>Quantity</th>
+                            <th>Total Value</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div>
+                    <button>Add Stock</button>
+                    <button>Perf. Graph</button>
+                    <button>Remove portfolio</button>
+                </div>
+            </div>
+        )
     }
 }
 
 
 ReactDOM.render(
-<Main/>,
+    <Main/>
+    ,
     document.getElementById("root")
 );

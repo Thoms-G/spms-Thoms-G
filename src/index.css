@@ -1,5 +1,6 @@
-.portefolio{
+.portfolio{
     width: 100%;
     height: auto;
-    border:1px solid black;
+    border:1px solid dimgray;
+    margin-top: 5px;
 }
