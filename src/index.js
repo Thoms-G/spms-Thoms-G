@@ -1,67 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+
 import './index.css';
-
-
-class Main extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            portfolios: Array(10).fill(null),
-            current_number_of_portfolio: 0,
-        };
-    }
-
-    addPortfolio() {
-        if (this.state.current_number_of_portfolio < 10) {
-            ReactDOM.render(
-                <Portfolio name={document.getElementById("pf_name").value}/>,
-                document.getElementById("pf" + this.state.current_number_of_portfolio));
-            this.state.current_number_of_portfolio++;
-
-        } else {
-            alert("You have too much portfolios");
-        }
-    }
-
-    removePortfolio() {
-
-    }
-
-    render() {
-        return (
-            <div>
-                <div>
-                    <input id="pf_name" type="text"/>
-                    <button onClick={() => this.addPortfolio()}>Create new portfolio</button>
-                </div>
-                <div id="pf0"/>
-                <div id="pf1"/>
-                <div id="pf2"/>
-                <div id="pf3"/>
-                <div id="pf4"/>
-                <div id="pf5"/>
-                <div id="pf6"/>
-                <div id="pf7"/>
-                <div id="pf8"/>
-                <div id="pf9"/>
-            </div>
-        )
-    }
-}
-
-class Stock extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            value: null,
-        };
-    }
-
-    render() {
-        return (<p></p>)
-    }
-}
 
 class Portfolio extends React.Component {
     render() {
@@ -87,8 +27,76 @@ class Portfolio extends React.Component {
                 <div>
                     <button>Add Stock</button>
                     <button>Perf. Graph</button>
-                    <button>Remove portfolio</button>
+                    <button onClick={() => this.props.remove(this.props.index)}>Remove portfolio</button>
                 </div>
+            </div>
+        )
+    }
+}
+
+class Main extends React.Component {
+    constructor(props) {
+        super(props);
+        let portfolios_history = [];
+        let nb_pf = 0;
+        this.removePortfolio = this.removePortfolio.bind(this);
+        if (JSON.parse(localStorage.getItem("portfolios_history"))) {
+            portfolios_history = JSON.parse(localStorage.getItem("portfolios_history"));
+            nb_pf = portfolios_history.length;
+        }
+
+        this.state = {
+            portfolios: portfolios_history,
+            current_number_of_portfolio: nb_pf,
+        };
+    }
+
+    addPortfolio =() => {
+        if (this.state.current_number_of_portfolio < 10) {
+            let newPF = document.getElementById("pf_name").value;
+            let tmp_pf = this.state.portfolios;
+            tmp_pf.push(newPF);
+            let nb_tmp = this.state.current_number_of_portfolio + 1;
+
+            this.setState({
+                portfolios: tmp_pf,
+                current_number_of_portfolio: nb_tmp
+            });
+
+        } else {
+            alert("You have too much portfolios");
+        }
+    };
+
+
+    removePortfolio = (index) => {
+        let tmp_pf = this.state.portfolios;
+        tmp_pf.splice(index, 1);
+        let nb_tmp = this.state.current_number_of_portfolio - 1;
+
+        this.setState({
+            portfolios: tmp_pf,
+            current_number_of_portfolio: nb_tmp
+        });
+    };
+
+    eachPortfolios = (pf, i) => {
+        return (<Portfolio name={pf}
+                           key={i}
+                           index={i}
+                           remove={(i) => this.removePortfolio(i)}/>);
+    };
+
+    render() {
+        return (
+            <div>
+                <div>
+                    <input id="pf_name" type="text"/>
+                    <button onClick={() => this.addPortfolio()}>Create new portfolio</button>
+                </div>
+                {
+                    this.state.portfolios.map(this.eachPortfolios)
+                }
             </div>
         )
     }
@@ -100,3 +108,5 @@ ReactDOM.render(
     ,
     document.getElementById("root")
 );
+
+
