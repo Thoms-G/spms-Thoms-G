@@ -27,6 +27,31 @@ class Portfolio extends React.Component {
         }
     }
 
+    savePortfolioState(){
+        localStorage.setItem("portfolios"+this.props.index, JSON.stringify(this.state));
+    }
+
+    componentDidMount() {
+        this.setState(JSON.parse(localStorage.getItem("portfolios"+this.props.index)));
+
+        // add event listener to save state to localStorage
+        // when user leaves/refreshes the page
+        window.addEventListener(
+            "beforeunload",
+            this.savePortfolioState.bind(this)
+        );
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener(
+            "beforeunload",
+            this.savePortfolioState.bind(this)
+        );
+
+        // saves if component has a chance to unmount
+        this.savePortfolioState();
+    }
+
     remove_stock = (index) => {
         let tmp_stocks = this.state.stocks;
         tmp_stocks.splice(index, 1);
@@ -142,15 +167,40 @@ class Main extends React.Component {
         let portfolios_history = [];
         let nb_pf = 0;
 
-        if (JSON.parse(localStorage.getItem("portfolios_history"))) {
+        /**if (JSON.parse(localStorage.getItem("portfolios_history"))) {
             portfolios_history = JSON.parse(localStorage.getItem("portfolios_history"));
             nb_pf = portfolios_history.length;
-        }
+        }**/
 
         this.state = {
             portfolios: portfolios_history,
             current_number_of_portfolio: nb_pf,
         };
+    }
+
+    saveMainState(){
+        localStorage.setItem("portfolios_history", JSON.stringify(this.state));
+    }
+
+    componentDidMount() {
+        this.setState(JSON.parse(localStorage.getItem("portfolios_history")));
+
+        // add event listener to save state to localStorage
+        // when user leaves/refreshes the page
+        window.addEventListener(
+            "beforeunload",
+            this.saveMainState.bind(this)
+        );
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener(
+            "beforeunload",
+            this.saveMainState.bind(this)
+        );
+
+        // saves if component has a chance to unmount
+        this.saveMainState();
     }
 
     addPortfolio = () => {
