@@ -11,7 +11,7 @@ class Stock extends React.Component {
                 <td></td>
                 <td>{this.props.shares}</td>
                 <td></td>
-                <td><button>Delete</button></td>
+                <td><button onClick={() => this.props.deleteStock(this.props.index)}>Delete</button></td>
             </tr>
         );
     }
@@ -27,6 +27,17 @@ class Portfolio extends React.Component {
         }
     }
 
+    remove_stock = (index) => {
+        let tmp_stocks = this.state.stocks;
+        tmp_stocks.splice(index, 1);
+        let nb_tmp = this.state.current_stocks - 1;
+
+        this.setState({
+            stocks: tmp_stocks,
+            current_stocks: nb_tmp
+        });
+    };
+
     add_stock() {
         this.setState({addingStock: true});
     }
@@ -41,7 +52,8 @@ class Portfolio extends React.Component {
 
             let tmp_current_stocks = this.state.current_stocks;
             let tmp_stocks = this.state.stocks;
-
+            //TODO : API call to get unit price
+            //TODO : Calculate the toal price of the row
             //Check if the symbol exist in the portfolio and
             // if it is not the case, add 1 top the current number of stocks
             if(typeof (tmp_stocks.find(s => s.symbol === stocks_sym)) === 'undefined'){
@@ -60,11 +72,12 @@ class Portfolio extends React.Component {
         this.setState({addingStock: false});
     }
 
-    each_stock(stock, i) {
-        return (<Stock symbol={stock.symbol} shares={stock.shares} key={i} index={i}/>)
-    }
+    each_stock = (stock, i) => {
+        return (<Stock symbol={stock.symbol} shares={stock.shares} key={i} index={i}
+                       deleteStock={(i) => this.remove_stock(i)}/>)
+    };
 
-    render_stock_form() {
+    render_stock_form () {
         return (
             <div className="portfolio">
                 <div>
@@ -197,5 +210,3 @@ ReactDOM.render(
     ,
     document.getElementById("root")
 );
-
-
