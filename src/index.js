@@ -18,11 +18,14 @@ class Stock extends React.Component {
         }
     }
 
-    async componentDidMount() {
+    componentDidMount() {
         let price_url = base_url_iex + '/stock/' + this.props.symbol + '/price';
-        const res = await fetch(price_url);
-        const u_price = parseFloat(await res.json()).toFixed(3);
-        this.setState({unit_price: u_price});
+        fetch(price_url)
+            .then((resp) => resp.json())
+            .then(function (data) {
+                const u_price = parseFloat(data).toFixed(3);
+                this.setState({unit_price: u_price});
+            }.bind(this));
     }
 
     componentDidUpdate(prevProps) {
@@ -107,8 +110,6 @@ class Portfolio extends React.Component {
             .catch(function (error) {
                 alert("Exchange not found")
             });
-
-        window.onload = e => this.update_total();
     }
 
     componentWillUnmount() {
@@ -121,47 +122,30 @@ class Portfolio extends React.Component {
         this.savePortfolioState();
     }
 
-    //TODO : update total of one pf
-    async update_total() {
-        let tmp_total = 0;
-        console.log(this.state.current_stocks);
-        if (this.state.current_stocks === 0) {
-            this.setState({total_value: 0});
-        } else {
-            for (let i = 0; i < this.state.current_stocks; i++) {
-                let s = this.state.stocks[i];
-                console.log(s.symbol);
-                let price_url = base_url_iex + '/stock/' + s.symbol + '/price';
-                const res = await fetch(price_url);
-                const u_price = parseFloat(await res.json()).toFixed(3);
-                tmp_total += u_price * s.shares;
-            }
-            console.log("total: " + tmp_total);
-            this.setState({total_value: tmp_total, loaded: 1});
-        }
-    }
+    /* componentDidUpdate(prevState) {
+         if (this.state.stocks !== prevState.stocks) {
+             console.log("in if did update");
+             this.update_total();
+         }
+     }*/
 
-    update_total2() {
+    update_total() {
         let tmp_total = 0;
-        console.log(this.state.current_stocks);
         if (this.state.current_stocks === 0) {
             this.setState({total_value: 0});
         } else {
             for (let i = 0; i < this.state.current_stocks; i++) {
                 let s = this.state.stocks[i];
-                console.log(s.symbol);
                 let price_url = base_url_iex + '/stock/' + s.symbol + '/price';
                 fetch(price_url)
                     .then((resp) => resp.json())
                     .then(function (data) {
                         const u_price = parseFloat(data).toFixed(3);
                         tmp_total += u_price * s.shares;
-                        console.log("total: " + tmp_total);
                         this.setState({total_value: tmp_total});
-                    });
+                    }.bind(this));
             }
-            /*console.log("total: " + tmp_total);
-            this.setState({total_value: tmp_total});*/
+
         }
     }
 
@@ -292,11 +276,11 @@ class Portfolio extends React.Component {
     }
 
     render_portfolio() {
-        let print_total='';
-        if(this.state.inEUR === true){
-            print_total=parseFloat(this.state.usdEur * this.state.total_value).toFixed(3) + '€'
-        }else{
-            print_total=parseFloat(this.state.total_value).toFixed(3) + '$'
+        let print_total = '';
+        if (this.state.inEUR === true) {
+            print_total = parseFloat(this.state.usdEur * this.state.total_value).toFixed(3) + '€'
+        } else {
+            print_total = parseFloat(this.state.total_value).toFixed(3) + '$'
         }
         return (
             <div className="mt-2 col-lg-6 col-sm-12 p-1">
@@ -341,7 +325,9 @@ class Portfolio extends React.Component {
                             </button>
                         </div>
                         <div className="btn-group m-1" role="group">
-                            <button type="button" className="btn btn-info">Perf. Graph</button>
+                            <button type="button" className="btn btn-info"
+                                    onClick={() => this.update_total()}>Refresh total
+                            </button>
                         </div>
                         <div className="btn-group m-1" role="group">
                             <button type="button" className="btn btn-outline-danger"
