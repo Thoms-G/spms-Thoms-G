@@ -4,45 +4,92 @@ import ReactDOM from 'react-dom';
 import './index.css';
 
 const base_url_iex = "https://api.iextrading.com/1.0";
+const API_KEY = "YIY9YZU6E4JU7NUM";
+const conversion_url = "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=EUR&apikey=" + API_KEY;
+
 
 class Stock extends React.Component {
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            unit_price: 0,
+            showEUR: false
+        }
+    }
+
+    async componentDidMount() {
+        let price_url = base_url_iex + '/stock/' + this.props.symbol + '/price';
+        const res = await fetch(price_url);
+        const u_price = parseFloat(await res.json()).toFixed(3);
+        this.setState({unit_price: u_price});
+    }
+
+    componentDidUpdate(prevProps) {
+        if (this.props.showinEur !== prevProps.showinEur) {
+            this.setState({showEUR: this.props.showinEur});
+        }
+    }
+
     render() {
-        return (
-            <tr>
-                <td>{this.props.symbol}</td>
-                <td>{this.props.unit_price}</td>
-                <td>{this.props.shares}</td>
-                <td>{this.props.unit_price * this.props.shares}</td>
-                <td>
-                    <button type="button" className="btn btn-warning btn-sm"
-                            onClick={() => this.props.deleteStock(this.props.index)}>Delete
-                    </button>
-                </td>
-            </tr>
-        );
+        if (this.state.showEUR === true) {
+            return (
+                <tr>
+                    <td>{this.props.symbol}</td>
+                    <td>{parseFloat(this.state.unit_price * this.props.usdEurexchange).toFixed(3)} €</td>
+                    <td>{this.props.shares}</td>
+                    <td>{parseFloat(this.state.unit_price * this.props.shares * this.props.usdEurexchange).toFixed(3)} €</td>
+                    <td>
+                        <button type="button" className="btn btn-warning btn-sm"
+                                onClick={() => this.props.deleteStock(this.props.index)}>Delete
+                        </button>
+                    </td>
+                </tr>
+            );
+        } else {
+            return (
+                <tr>
+                    <td>{this.props.symbol}</td>
+                    <td>{this.state.unit_price} $</td>
+                    <td>{this.props.shares}</td>
+                    <td>{parseFloat(this.state.unit_price * this.props.shares).toFixed(3)} $</td>
+                    <td>
+                        <button type="button" className="btn btn-warning btn-sm"
+                                onClick={() => this.props.deleteStock(this.props.index)}>Delete
+                        </button>
+                    </td>
+                </tr>
+            );
+        }
     }
 }
 
 class Portfolio extends React.Component {
     constructor(props) {
         super(props);
+
         this.state = {
             addingStock: false,
             stocks: [],
             current_stocks: 0,
-            reload: 0
+            total_value: 0,
+            loaded: 0,
+            inEUR: false,
+            usdEur: 0
         };
-        this.update_stocks();
+
     }
 
     savePortfolioState() {
-        this.update_stocks();
-        localStorage.setItem("portfolios" + this.props.index, JSON.stringify(this.state));
+        localStorage.setItem(this.props.name, JSON.stringify(this.state));
+    }
+
+    componentWillMount() {
+        this.setState(JSON.parse(localStorage.getItem(this.props.name)));
     }
 
     componentDidMount() {
-        this.setState(JSON.parse(localStorage.getItem("portfolios" + this.props.index)));
-        this.setState({reload: 0});
+        this.setState(JSON.parse(localStorage.getItem(this.props.name)));
 
         // add event listener to save state to localStorage
         // when user leaves/refreshes the page
@@ -50,6 +97,18 @@ class Portfolio extends React.Component {
             "beforeunload",
             this.savePortfolioState.bind(this)
         );
+
+        fetch(conversion_url)
+            .then((resp) => resp.json())
+            .then(function (data) {
+                let taux = parseFloat(data["Realtime Currency Exchange Rate"]["5. Exchange Rate"]).toFixed(3);
+                this.setState({usdEur: taux});
+            }.bind(this))
+            .catch(function (error) {
+                alert("Exchange not found")
+            });
+
+        window.onload = e => this.update_total();
     }
 
     componentWillUnmount() {
@@ -62,15 +121,79 @@ class Portfolio extends React.Component {
         this.savePortfolioState();
     }
 
+    //TODO : update total of one pf
+    async update_total() {
+        let tmp_total = 0;
+        console.log(this.state.current_stocks);
+        if (this.state.current_stocks === 0) {
+            this.setState({total_value: 0});
+        } else {
+            for (let i = 0; i < this.state.current_stocks; i++) {
+                let s = this.state.stocks[i];
+                console.log(s.symbol);
+                let price_url = base_url_iex + '/stock/' + s.symbol + '/price';
+                const res = await fetch(price_url);
+                const u_price = parseFloat(await res.json()).toFixed(3);
+                tmp_total += u_price * s.shares;
+            }
+            console.log("total: " + tmp_total);
+            this.setState({total_value: tmp_total, loaded: 1});
+        }
+    }
+
+    update_total2() {
+        let tmp_total = 0;
+        console.log(this.state.current_stocks);
+        if (this.state.current_stocks === 0) {
+            this.setState({total_value: 0});
+        } else {
+            for (let i = 0; i < this.state.current_stocks; i++) {
+                let s = this.state.stocks[i];
+                console.log(s.symbol);
+                let price_url = base_url_iex + '/stock/' + s.symbol + '/price';
+                fetch(price_url)
+                    .then((resp) => resp.json())
+                    .then(function (data) {
+                        const u_price = parseFloat(data).toFixed(3);
+                        tmp_total += u_price * s.shares;
+                        console.log("total: " + tmp_total);
+                        this.setState({total_value: tmp_total});
+                    });
+            }
+            /*console.log("total: " + tmp_total);
+            this.setState({total_value: tmp_total});*/
+        }
+    }
+
     remove_stock = (index) => {
         let tmp_stocks = this.state.stocks;
+        let stock_price = this.state.stocks[index].unit_price * this.state.stocks[index].shares;
         tmp_stocks.splice(index, 1);
         let nb_tmp = this.state.current_stocks - 1;
+        let tmp_total = this.state.total_value - stock_price;
+        tmp_total = parseFloat(tmp_total).toFixed(3);
 
         this.setState({
             stocks: tmp_stocks,
-            current_stocks: nb_tmp
+            current_stocks: nb_tmp,
+            total_value: tmp_total
         });
+    };
+
+    remove_all_stock = () => {
+        this.setState({
+            stocks: [],
+            current_stocks: 0,
+            total_value: 0
+        });
+    };
+
+    show_in_eur = () => {
+        this.setState({inEUR: true});
+    };
+
+    show_in_usd = () => {
+        this.setState({inEUR: false});
     };
 
     add_stock_state() {
@@ -84,7 +207,7 @@ class Portfolio extends React.Component {
             typeof (this.state.stocks.find(s => s.symbol === this.refs.symbol.value)) !== 'undefined') {
             let stocks_sym = this.refs.symbol.value;
             let stock_shares = parseInt(this.refs.number_shares.value);
-
+            let tmp_total = this.state.total_value;
             let tmp_current_stocks = this.state.current_stocks;
             let tmp_stocks = this.state.stocks;
 
@@ -98,14 +221,16 @@ class Portfolio extends React.Component {
                     if (typeof (tmp_stocks.find(s => s.symbol === stocks_sym)) === 'undefined') {
                         tmp_current_stocks = tmp_current_stocks + 1;
                     }
-                    let u_price = Number(data);
-
+                    let u_price = parseFloat(data).toFixed(3);
+                    tmp_total += u_price * stock_shares;
+                    tmp_total = parseFloat(tmp_total).toFixed(3);
                     tmp_stocks.push({symbol: stocks_sym, shares: stock_shares, unit_price: u_price});
 
                     this.setState({
                         addingStock: false,
                         stocks: tmp_stocks,
-                        current_stocks: tmp_current_stocks
+                        current_stocks: tmp_current_stocks,
+                        total_value: tmp_total
                     });
 
                 }.bind(this))
@@ -122,68 +247,43 @@ class Portfolio extends React.Component {
         this.setState({addingStock: false});
     }
 
-    update_stocks() {
-        if (this.state.reload === 1) {
-            console.log("dans update");
-            let tmp_stocks = this.state.stocks;
-            console.log(tmp_stocks);
-            let i = 0;
-            for (let stock of tmp_stocks) {
-                console.log("dans for");
-                this.update_stocks_bis(stock, i);
-                i++;
-            }
-            this.setState({reload: 0})
-        }
-    }
-
-
-    async update_stocks_bis(stock, index) {
-        let price_url = base_url_iex + '/stock/' + stock.symbol + '/price';
-        const res = await fetch(price_url);
-        const u_price = Number(await res.json());
-        console.log(u_price);
-        let tmp_stocks = this.state.stocks;
-        tmp_stocks[index].unit_price = u_price + 1;
-        this.setState({stocks: tmp_stocks});
-        //return u_price;
-    }
-
     each_stock = (stock, i) => {
-        //this.update_stocks_bis(stock, i);
         return (
-            <Stock symbol={stock.symbol} shares={stock.shares} unit_price={stock.unit_price}
-                   key={i} index={i}
-                   deleteStock={(i) => this.remove_stock(i)}/>)
+            <Stock symbol={stock.symbol} shares={stock.shares}
+                   key={i} index={i} showinEur={this.state.inEUR} usdEurexchange={this.state.usdEur}
+                   deleteStock={(i) => this.remove_stock(i)}
+            />)
 
 
     };
 
     render_stock_form() {
         return (
-            <div className="card mt-3 ml-auto col-lg-6 col-sm-12">
+            <div className="mt-2 col-lg-6 col-sm-12 p-1">
+                <div className="card ">
 
-                <h3 className="card-header">{this.props.name}</h3>
+                    <h3 className="card-header">{this.props.name}</h3>
 
-                <div className="form-group">
-                    <div>
-                        <label htmlFor="symbol">Symbol</label>
-                        <input type="text" id="symbol" ref="symbol" className="form-control"/>
-                    </div>
-                    <div>
-                        <label htmlFor="number_shares">Total number of shares</label>
-                        <input type="number" id="number_shares" ref="number_shares" className="form-control"/>
-                    </div>
-                    <div className="btn-toolbar m-2" role="toolbar">
-                        <div className="btn-group mr-3" role="group">
-                            <button type="button" className="btn btn-success"
-                                    onClick={() => this.save_stock()}>Save
-                            </button>
+                    <div className="form-group">
+                        <div>
+                            <label htmlFor="symbol">Symbol</label>
+                            <input type="text" id="symbol" ref="symbol" className="form-control"/>
                         </div>
-                        <div className="btn-group" role="group">
-                            <button type="button" className="btn btn-outline-secondary btn"
-                                    onClick={() => this.back_to_portfolio()}>Cancel
-                            </button>
+                        <div>
+                            <label htmlFor="number_shares">Total number of shares</label>
+                            <input type="number" id="number_shares" ref="number_shares" className="form-control"/>
+                        </div>
+                        <div className="btn-toolbar m-2" role="toolbar">
+                            <div className="btn-group mr-3" role="group">
+                                <button type="button" className="btn btn-success"
+                                        onClick={() => this.save_stock()}>Save
+                                </button>
+                            </div>
+                            <div className="btn-group" role="group">
+                                <button type="button" className="btn btn-outline-secondary btn"
+                                        onClick={() => this.back_to_portfolio()}>Cancel
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -192,59 +292,68 @@ class Portfolio extends React.Component {
     }
 
     render_portfolio() {
-        let tmp_stocks = this.state.stocks;
-        let tmp_total_value = 0;
-
-        for (let stock of tmp_stocks) {
-            tmp_total_value += stock.unit_price * stock.shares;
+        let print_total='';
+        if(this.state.inEUR === true){
+            print_total=parseFloat(this.state.usdEur * this.state.total_value).toFixed(3) + '€'
+        }else{
+            print_total=parseFloat(this.state.total_value).toFixed(3) + '$'
         }
-
         return (
+            <div className="mt-2 col-lg-6 col-sm-12 p-1">
+                <div className="card ">
 
-            <div className="card mt-3 col-lg-6 col-sm-12">
+                    <h3 className="card-header">{this.props.name}</h3>
+                    <div className="container">
+                        <div className="btn-group btn-group-toggle m-1" data-toggle="buttons">
+                            <button className="btn btn-secondary float-right" type="radio"
+                                    onClick={() => this.show_in_usd()}> Show in $
+                            </button>
+                            <button className="btn btn-secondary float-right" type="radio"
+                                    onClick={() => this.show_in_eur()}> Show in €
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <table className="table table-striped table-hover">
+                            <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Unit. Value</th>
+                                <th scope="col">Quantity</th>
+                                <th scope="col">Total Value</th>
+                                <th scope="col">Delete</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {this.state.stocks.map(this.each_stock)}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        Total value : {print_total}
+                    </div>
 
-                <h3 className="card-header">{this.props.name}</h3>
-                <div className="container">
-                    <div className="btn-group btn-group-toggle m-1" data-toggle="buttons">
-                        <button className="btn btn-secondary float-right" type="radio"> Show in $</button>
-                        <button className="btn btn-secondary float-right" type="radio"> Show in €</button>
-                    </div>
-                </div>
-                <div>
-                    <table className="table table-striped table-hover">
-                        <thead>
-                        <tr>
-                            <th scope="col">Name</th>
-                            <th scope="col">Unit. Value</th>
-                            <th scope="col">Quantity</th>
-                            <th scope="col">Total Value</th>
-                            <th scope="col">Delete</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {this.state.stocks.map(this.each_stock)}
-                        </tbody>
-                    </table>
-                </div>
-                <div>
-                    Total value : {tmp_total_value}
-                </div>
-
-                <div className="btn-toolbar m-2" role="toolbar">
-                    <div className="btn-group m-1" role="group" aria-label="First group">
-                        <button type="button" className="btn btn-primary"
-                                onClick={() => this.add_stock_state()}>Add
-                            Stock
-                        </button>
-                    </div>
-                    <div className="btn-group m-1" role="group">
-                        <button type="button" className="btn btn-info">Perf. Graph</button>
-                    </div>
-                    <div className="btn-group m-1" role="group">
-                        <button type="button" className="btn btn-outline-danger"
-                                onClick={() => this.props.remove(this.props.index)}>Remove
-                            portfolio
-                        </button>
+                    <div className="btn-toolbar m-2" role="toolbar">
+                        <div className="btn-group m-1" role="group" aria-label="First group">
+                            <button type="button" className="btn btn-primary"
+                                    onClick={() => this.add_stock_state()}>Add
+                                Stock
+                            </button>
+                        </div>
+                        <div className="btn-group m-1" role="group">
+                            <button type="button" className="btn btn-info">Perf. Graph</button>
+                        </div>
+                        <div className="btn-group m-1" role="group">
+                            <button type="button" className="btn btn-outline-danger"
+                                    onClick={() => this.props.remove(this.props.index)}>Remove
+                                portfolio
+                            </button>
+                        </div>
+                        <div className="btn-group m-1" role="group">
+                            <button type="button" className="btn btn-outline-danger"
+                                    onClick={() => this.remove_all_stock()}>Remove all stocks
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -299,7 +408,8 @@ class Main extends React.Component {
     }
 
     addPortfolio = () => {
-        if (this.state.current_number_of_portfolio < 10) {
+        if (this.state.current_number_of_portfolio < 10 &&
+            this.state.portfolios.includes(document.getElementById("pf_name").value) === false) {
             let newPF = document.getElementById("pf_name").value;
             let tmp_pf = this.state.portfolios;
             tmp_pf.push(newPF);
@@ -310,6 +420,8 @@ class Main extends React.Component {
                 current_number_of_portfolio: nb_tmp
             });
 
+        } else if (this.state.portfolios.includes(document.getElementById("pf_name").value) === true) {
+            alert("This name is already used");
         } else {
             alert("You have too much portfolios");
         }
@@ -318,6 +430,7 @@ class Main extends React.Component {
 
     removePortfolio = (index) => {
         let tmp_pf = this.state.portfolios;
+        localStorage.removeItem(tmp_pf[index]);
         tmp_pf.splice(index, 1);
         let nb_tmp = this.state.current_number_of_portfolio - 1;
 
