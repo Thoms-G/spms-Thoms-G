@@ -19,13 +19,13 @@ class Stock extends React.Component {
     }
 
     componentDidMount() {
-        let price_url = base_url_iex + '/stock/' + this.props.symbol + '/price';
-        fetch(price_url)
-            .then((resp) => resp.json())
-            .then(function (data) {
-                const u_price = parseFloat(data).toFixed(3);
-                this.setState({unit_price: u_price});
-            }.bind(this));
+        // The stock price will be refresh every 5 sec
+        this.update_unit_price();
+        this.interval = setInterval(() => this.update_unit_price(), 5000);
+    }
+
+    componentWillUnmount() {
+        clearInterval(this.interval);
     }
 
     componentDidUpdate(prevProps) {
@@ -33,6 +33,16 @@ class Stock extends React.Component {
             this.setState({showEUR: this.props.showinEur});
         }
     }
+
+    update_unit_price = () => {
+        let price_url = base_url_iex + '/stock/' + this.props.symbol + '/price';
+        fetch(price_url)
+            .then((resp) => resp.json())
+            .then(function (data) {
+                const u_price = parseFloat(data).toFixed(3);
+                this.setState({unit_price: u_price});
+            }.bind(this));
+    };
 
     render() {
         if (this.state.showEUR === true) {
@@ -110,6 +120,10 @@ class Portfolio extends React.Component {
             .catch(function (error) {
                 alert("Exchange not found")
             });
+
+        // The total value of a portfolios will be refresh every minute
+        this.update_total();
+        this.interval = setInterval(() => this.update_total(), 60000);
     }
 
     componentWillUnmount() {
@@ -120,14 +134,10 @@ class Portfolio extends React.Component {
 
         // saves if component has a chance to unmount
         this.savePortfolioState();
+
+        clearInterval(this.interval);
     }
 
-    /* componentDidUpdate(prevState) {
-         if (this.state.stocks !== prevState.stocks) {
-             console.log("in if did update");
-             this.update_total();
-         }
-     }*/
 
     update_total() {
         let tmp_total = 0;
