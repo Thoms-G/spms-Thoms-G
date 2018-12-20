@@ -21,7 +21,7 @@ class Stock extends React.Component {
     componentDidMount() {
         // The stock price will be refresh every 5 sec
         this.update_unit_price();
-        this.interval = setInterval(() => this.update_unit_price(), 5000);
+        this.interval = setInterval(() => this.update_unit_price(), 20000);
     }
 
     componentWillUnmount() {
@@ -123,7 +123,7 @@ class Portfolio extends React.Component {
 
         // The total value of a portfolios will be refresh every minute
         this.update_total();
-        this.interval = setInterval(() => this.update_total(), 60000);
+        this.interval = setInterval(() => this.update_total(), 20000);
     }
 
     componentWillUnmount() {
