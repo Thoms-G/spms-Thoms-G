@@ -6,6 +6,7 @@ import './index.css';
 const base_url_iex = "https://sandbox.iexapis.com/stable";
 const IEX_API_KEY = "Tpk_2cc8b47a564b48fe9247d09538b02ffb";
 const suffixe_base_url_iex = "?token="+ IEX_API_KEY;
+
 const API_KEY = "YIY9YZU6E4JU7NUM";
 const conversion_url = "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=EUR&apikey=" + API_KEY;
 
