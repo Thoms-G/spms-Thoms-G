@@ -3,7 +3,10 @@ import ReactDOM from 'react-dom';
 
 import './index.css';
 
-const base_url_iex = "https://api.iextrading.com/1.0";
+const base_url_iex = "https://sandbox.iexapis.com/stable";
+const IEX_API_KEY = "Tpk_2cc8b47a564b48fe9247d09538b02ffb";
+const suffixe_base_url_iex = "?token="+ IEX_API_KEY;
+
 const API_KEY = "YIY9YZU6E4JU7NUM";
 const conversion_url = "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=USD&to_currency=EUR&apikey=" + API_KEY;
 
@@ -35,7 +38,7 @@ class Stock extends React.Component {
     }
 
     update_unit_price = () => {
-        let price_url = base_url_iex + '/stock/' + this.props.symbol + '/price';
+        let price_url = base_url_iex + '/stock/' + this.props.symbol + '/price' + suffixe_base_url_iex;
         fetch(price_url)
             .then((resp) => resp.json())
             .then(function (data) {
@@ -146,7 +149,7 @@ class Portfolio extends React.Component {
         } else {
             for (let i = 0; i < this.state.current_stocks; i++) {
                 let s = this.state.stocks[i];
-                let price_url = base_url_iex + '/stock/' + s.symbol + '/price';
+                let price_url = base_url_iex + '/stock/' + s.symbol + '/price' + suffixe_base_url_iex;
                 fetch(price_url)
                     .then((resp) => resp.json())
                     .then(function (data) {
@@ -205,7 +208,7 @@ class Portfolio extends React.Component {
             let tmp_current_stocks = this.state.current_stocks;
             let tmp_stocks = this.state.stocks;
 
-            let price_url = base_url_iex + '/stock/' + stocks_sym + '/price';
+            let price_url = base_url_iex + '/stock/' + stocks_sym + '/price' + suffixe_base_url_iex;
 
             fetch(price_url)
                 .then((resp) => resp.json())
